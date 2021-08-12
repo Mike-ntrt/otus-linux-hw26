@@ -1,0 +1,33 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+  - name: Restart network service
+    systemd:
+      name: network.service
+      state: restarted
+
+- hosts: routers
+  become: yes
+  tasks:
+  - name: Enable ip forward
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: 1
+      sysctl_set: yes
+      state: present
+      reload: yes
+
+- hosts: office1Router,office2Router
+  become: yes
+  tasks:
+  - name: Add NAT rule
+    iptables:
+      table: nat
+      chain: POSTROUTING
+      out_interface: eth1
+      destination: "{{ item }}"
+      jump: MASQUERADE
+    with_items:
+    - "!192.168.1.0/24"
+    - "!192.168.2.0/24"
